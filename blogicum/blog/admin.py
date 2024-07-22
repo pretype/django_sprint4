@@ -2,7 +2,7 @@
 
 from django.contrib import admin
 
-from .models import Post, Category, Location
+from .models import Category, Comment, Location, Post
 
 
 class PostAdmin(admin.ModelAdmin):
@@ -31,3 +31,4 @@ class CategoryAdmin(admin.ModelAdmin):
 admin.site.register(Post, PostAdmin)
 admin.site.register(Category, CategoryAdmin)
 admin.site.register(Location)
+admin.site.register(Comment)

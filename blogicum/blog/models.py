@@ -3,11 +3,12 @@
 from django.contrib.auth import get_user_model
 from django.db import models
 
-
 User = get_user_model()
+# Произвольное значение для усечения длины строки.
+max_lenght = 32
 
 
-class CommonModel(models.Model):
+class CommonTechAttributesModel(models.Model):
     """Класс, с описанием общих для моделей атрибутов."""
 
     is_published = models.BooleanField(
@@ -21,65 +22,11 @@ class CommonModel(models.Model):
     )
 
     class Meta:
-        """Класс с определением метаданных модели CommonModel."""
-
         abstract = True
 
 
-class Post(CommonModel):
-    """Класс, с описанием модели Post."""
-
-    title = models.CharField(max_length=256, verbose_name='Заголовок')
-    text = models.TextField(verbose_name='Текст')
-    image = models.ImageField(
-        'Изображение', upload_to='post_images', blank=True)
-    pub_date = models.DateTimeField(
-        verbose_name='Дата и время публикации',
-        # Автотесты не пропустили оформление текста
-        # через тройные одиночные кавычки.
-        help_text=(
-            'Если установить дату и время в будущем — '
-            + 'можно делать отложенные публикации.'
-        )
-    )
-    author = models.ForeignKey(
-        User,
-        verbose_name='Автор публикации',
-        on_delete=models.CASCADE
-    )
-    location = models.ForeignKey(
-        'Location',
-        verbose_name='Местоположение',
-        on_delete=models.SET_NULL,
-        blank=True,
-        null=True
-    )
-    category = models.ForeignKey(
-        'Category',
-        verbose_name='Категория',
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name='categories'
-    )
-
-    class Meta:
-        """Класс с определением метаданных модели Post."""
-
-        verbose_name = 'публикация'
-        verbose_name_plural = 'Публикации'
-        ordering = ('-pub_date',)
-
-    def __str__(self):
-        """Выводит читаемые названия объектов."""
-        return self.title
-
-    def comment_count(self):
-        """Считает кол-во комментариев поста."""
-        return Comment.objects.filter(post=self).count()
-
-
-class Category(CommonModel):
-    """Класс, с описанием модели Category."""
+class Category(CommonTechAttributesModel):
+    """Класс, с описанием модели категории."""
 
     title = models.CharField(
         max_length=256,
@@ -89,27 +36,24 @@ class Category(CommonModel):
     slug = models.SlugField(
         unique=True,
         verbose_name='Идентификатор',
-        # Автотесты не пропустили оформление текста
-        # через тройные одиночные кавычки.
-        help_text=(
-            'Идентификатор страницы для URL; '
-            + 'разрешены символы латиницы, цифры, дефис и подчёркивание.'
-        )
+        help_text='''
+            Идентификатор страницы для URL;
+            разрешены символы латиницы, цифры, дефис и подчёркивание.
+        '''
     )
 
     class Meta:
-        """Класс с определением метаданных модели Category."""
-
         verbose_name = 'категория'
         verbose_name_plural = 'Категории'
+        ordering = ('title',)
 
     def __str__(self):
         """Выводит читаемые названия объектов."""
-        return self.title
+        return self.title[:max_lenght]
 
 
-class Location(CommonModel):
-    """Класс, с описанием модели Location."""
+class Location(CommonTechAttributesModel):
+    """Класс, с описанием модели локации."""
 
     name = models.CharField(
         max_length=256,
@@ -117,14 +61,59 @@ class Location(CommonModel):
     )
 
     class Meta:
-        """Класс с определением метаданных модели Location."""
-
         verbose_name = 'местоположение'
         verbose_name_plural = 'Местоположения'
+        ordering = ('name',)
 
     def __str__(self):
         """Выводит читаемые названия объектов."""
-        return self.name
+        return self.name[:max_lenght]
+
+
+class Post(CommonTechAttributesModel):
+    """Класс, с описанием модели поста."""
+
+    title = models.CharField(max_length=256, verbose_name='Заголовок')
+    text = models.TextField(verbose_name='Текст')
+    image = models.ImageField(
+        'Изображение', upload_to='post_images', blank=True)
+    pub_date = models.DateTimeField(
+        verbose_name='Дата и время публикации',
+        help_text='''
+            Если установить дату и время в будущем —
+            можно делать отложенные публикации.
+        '''
+    )
+    author = models.ForeignKey(
+        User,
+        verbose_name='Автор публикации',
+        on_delete=models.CASCADE,
+        related_name='posts'
+    )
+    location = models.ForeignKey(
+        Location,
+        verbose_name='Местоположение',
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='posts'
+    )
+    category = models.ForeignKey(
+        Category,
+        verbose_name='Категория',
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='posts'
+    )
+
+    class Meta:
+        verbose_name = 'публикация'
+        verbose_name_plural = 'Публикации'
+        ordering = ('-pub_date',)
+
+    def __str__(self):
+        """Выводит читаемые названия объектов."""
+        return self.title[:max_lenght]
 
 
 class Comment(models.Model):
@@ -134,12 +123,23 @@ class Comment(models.Model):
     post = models.ForeignKey(
         Post,
         on_delete=models.CASCADE,
-        related_name='comments',
+        verbose_name='пост',
+        related_name='comments'
     )
-    created_at = models.DateTimeField(auto_now_add=True)
-    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(
+        verbose_name='опубликован', auto_now_add=True)
+    author = models.ForeignKey(
+        User,
+        verbose_name='автор',
+        on_delete=models.CASCADE,
+        related_name='comments')
 
     class Meta:
-        """Класс с определением метаданных модели Comment."""
-
+        verbose_name = 'комментарий'
+        verbose_name_plural = 'Комментарии'
         ordering = ('created_at',)
+
+    def __str__(self):
+        """Выводит читаемые названия объектов."""
+        return f'''Пост: {self.post.title[:max_lenght]}.
+        Текст: {self.text[:max_lenght]}'''

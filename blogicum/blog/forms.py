@@ -2,7 +2,7 @@
 
 from django import forms
 
-from .models import User, Post, Comment
+from .models import Comment, Post, User
 
 
 class PostForm(forms.ModelForm):
@@ -12,7 +12,7 @@ class PostForm(forms.ModelForm):
         """Класс с определением метаданных формы поста."""
 
         model = Post
-        exclude = {'author', }
+        exclude = ('author', )
         widgets = {
             'pub_date': forms.DateInput(attrs={'type': 'date'})
         }
@@ -25,7 +25,7 @@ class ProfileChangeForm(forms.ModelForm):
         """Класс с определением метаданных формы ред. профиля."""
 
         model = User
-        fields = {'first_name', 'last_name', 'username', 'email'}
+        fields = ('first_name', 'last_name', 'username', 'email')
 
 
 class CommentForm(forms.ModelForm):
