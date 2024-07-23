@@ -64,21 +64,20 @@ class CommentDelEditMixin:
     pk_url_kwarg = 'comment_id'
 
 
-def posts_default_fields(posts=Post.objects, is_author=False):
+def posts_filtering_ordering(posts=Post.objects, posts_filtered=True):
     """Содержит стандартные сортировку, фильтры и подсчет для постов."""
-    if is_author:
-        posts = posts.all()
-    else:
+    if posts_filtered:
         posts = posts.filter(
             pub_date__date__lte=timezone.now(),
             is_published=True,
             category__is_published=True
         )
-    return (
-        posts
-        .select_related('author', 'location', 'category')
-        .annotate(comment_count=Count('comments'))
-        .order_by(*Post._meta.ordering)
+    return posts.select_related(
+        'author', 'location', 'category'
+    ).annotate(
+        comment_count=Count('comments')
+    ).order_by(
+        *Post._meta.ordering
     )
 
 
@@ -86,7 +85,7 @@ class Index(PostsListMixin, ListView):
     """Класс с обработкой главной страницы."""
 
     template_name = 'blog/index.html'
-    queryset = posts_default_fields()
+    queryset = posts_filtering_ordering()
 
 
 class PostDetailView(DetailView):
@@ -96,7 +95,6 @@ class PostDetailView(DetailView):
     template_name = 'blog/detail.html'
 
     def get_object(self):
-        """Отдает текущий пост или ошибку '404'."""
         post = get_object_or_404(
             Post,
             pk=self.kwargs['post_pk']
@@ -104,12 +102,11 @@ class PostDetailView(DetailView):
         if post.author == self.request.user:
             return post
         return get_object_or_404(
-            posts_default_fields(),
+            posts_filtering_ordering(),
             pk=self.kwargs['post_pk']
         )
 
     def get_context_data(self, **kwargs):
-        """Описание словаря контекста поста."""
         return super().get_context_data(
             form=CommentForm(),
             comments=self.object.comments.select_related('author'),
@@ -131,7 +128,7 @@ class CategoryPosts(PostsListMixin, ListView):
 
     def get_queryset(self):
         """Отдает отфильтрованный список постов опр. категории."""
-        return posts_default_fields(self.get_category().posts)
+        return posts_filtering_ordering(self.get_category().posts)
 
     def get_context_data(self, **kwargs):
         """Описание словаря контекста категории."""
@@ -152,9 +149,10 @@ class UserProfile(PostsListMixin, ListView):
     def get_queryset(self):
         """Отдает отфильтрованный список постов опр. пользователя."""
         author = self.get_author()
-        return posts_default_fields(
+        posts_filtered = (author != self.request.user)
+        return posts_filtering_ordering(
             author.posts,
-            author == self.request.user
+            posts_filtered
         )
 
     def get_context_data(self, **kwargs):
@@ -189,7 +187,7 @@ class PostUpdateView(OnlyAuthorMixin, PostCreateMutateMixin, UpdateView):
 
     def handle_no_permission(self):
         """Перенаправляет пользователя без доступа к редактированию поста."""
-        return redirect('blog:post_detail', self.kwargs['post_pk'])
+        return redirect('blog:post_detail', self.get_object().pk)
 
 
 class PostDeleteView(OnlyAuthorMixin, PostCreateMutateMixin, DeleteView):
@@ -200,7 +198,6 @@ class CommentCreateView(LoginRequiredMixin, CommentMixin, CreateView):
     """Класс с обработкой создания комментария."""
 
     def get_post(self):
-        """Отдает текущий пост или ошибку '404'."""
         return get_object_or_404(
             Post,
             pk=self.kwargs['post_pk']
