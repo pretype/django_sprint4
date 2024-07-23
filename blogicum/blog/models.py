@@ -4,11 +4,12 @@ from django.contrib.auth import get_user_model
 from django.db import models
 
 User = get_user_model()
-# Произвольное значение для усечения длины строки.
-max_lenght = 32
+# Произвольное значение для усечения длины
+# выводимых наименований и оглавлений объектов моделей.
+OBJECT_NAME_MAX_LENGHT = 32
 
 
-class CommonTechAttributesModel(models.Model):
+class PubCheckAndCreationTimeModel(models.Model):
     """Класс, с описанием общих для моделей атрибутов."""
 
     is_published = models.BooleanField(
@@ -25,7 +26,7 @@ class CommonTechAttributesModel(models.Model):
         abstract = True
 
 
-class Category(CommonTechAttributesModel):
+class Category(PubCheckAndCreationTimeModel):
     """Класс, с описанием модели категории."""
 
     title = models.CharField(
@@ -36,10 +37,10 @@ class Category(CommonTechAttributesModel):
     slug = models.SlugField(
         unique=True,
         verbose_name='Идентификатор',
-        help_text='''
-            Идентификатор страницы для URL;
-            разрешены символы латиницы, цифры, дефис и подчёркивание.
-        '''
+        help_text=(
+            'Идентификатор страницы для URL; '
+            'разрешены символы латиницы, цифры, дефис и подчёркивание.'
+        )
     )
 
     class Meta:
@@ -49,10 +50,10 @@ class Category(CommonTechAttributesModel):
 
     def __str__(self):
         """Выводит читаемые названия объектов."""
-        return self.title[:max_lenght]
+        return self.title[:OBJECT_NAME_MAX_LENGHT]
 
 
-class Location(CommonTechAttributesModel):
+class Location(PubCheckAndCreationTimeModel):
     """Класс, с описанием модели локации."""
 
     name = models.CharField(
@@ -67,10 +68,10 @@ class Location(CommonTechAttributesModel):
 
     def __str__(self):
         """Выводит читаемые названия объектов."""
-        return self.name[:max_lenght]
+        return self.name[:OBJECT_NAME_MAX_LENGHT]
 
 
-class Post(CommonTechAttributesModel):
+class Post(PubCheckAndCreationTimeModel):
     """Класс, с описанием модели поста."""
 
     title = models.CharField(max_length=256, verbose_name='Заголовок')
@@ -79,10 +80,10 @@ class Post(CommonTechAttributesModel):
         'Изображение', upload_to='post_images', blank=True)
     pub_date = models.DateTimeField(
         verbose_name='Дата и время публикации',
-        help_text='''
-            Если установить дату и время в будущем —
-            можно делать отложенные публикации.
-        '''
+        help_text=(
+            'Если установить дату и время в будущем — '
+            'можно делать отложенные публикации.'
+        )
     )
     author = models.ForeignKey(
         User,
@@ -113,7 +114,7 @@ class Post(CommonTechAttributesModel):
 
     def __str__(self):
         """Выводит читаемые названия объектов."""
-        return self.title[:max_lenght]
+        return self.title[:OBJECT_NAME_MAX_LENGHT]
 
 
 class Comment(models.Model):
@@ -141,5 +142,7 @@ class Comment(models.Model):
 
     def __str__(self):
         """Выводит читаемые названия объектов."""
-        return f'''Пост: {self.post.title[:max_lenght]}.
-        Текст: {self.text[:max_lenght]}'''
+        return (
+            f'Пост: {self.post.title[:OBJECT_NAME_MAX_LENGHT]}. '
+            f'Текст: {self.text[:OBJECT_NAME_MAX_LENGHT]}'
+        )
